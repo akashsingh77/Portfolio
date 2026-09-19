@@ -17,7 +17,9 @@ function Navbar() {
     { href: "#skills", label: "Skills" },
     { href: "#education", label: "Education" },
     { href: "#projects", label: "Projects" },
+    { href: "#certifications", label: "Certifications" },
     { href: "#contact", label: "Contact" },
+    { href: "#admin/certifications", label: "Admin" },
   ];
 
   return (

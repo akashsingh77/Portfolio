@@ -1,20 +1,14 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const PROFILE_STORAGE_KEY = "portfolio.profile.image";
-const RESUME_STORAGE_KEY = "portfolio.resume.file";
 const DEFAULT_PROFILE_IMAGE = "/profile.png";
-const DEFAULT_RESUME = {
-  url: "/resume.pdf",
-  name: "resume.pdf",
-  type: "application/pdf",
-  size: 0,
-};
+const DEFAULT_RESUME_URL = "/resume.pdf";
 const PHOTO_MAX_SIZE = 2 * 1024 * 1024;
-const RESUME_MAX_SIZE = 5 * 1024 * 1024;
 
 const Hero = () => {
   const profileInputRef = useRef(null);
   const resumeInputRef = useRef(null);
+  const resumeViewUrlRef = useRef(null);
 
   const getStoredProfile = () => {
     try {
@@ -28,26 +22,19 @@ const Hero = () => {
     }
   };
 
-  const getStoredResume = () => {
-    try {
-      const item = localStorage.getItem(RESUME_STORAGE_KEY);
-      if (!item) return DEFAULT_RESUME;
-
-      const storedResume = JSON.parse(item);
-      return {
-        url: storedResume?.url || DEFAULT_RESUME.url,
-        name: storedResume?.name || DEFAULT_RESUME.name,
-        type: storedResume?.type || DEFAULT_RESUME.type,
-        size: storedResume?.size || DEFAULT_RESUME.size,
-      };
-    } catch {
-      return DEFAULT_RESUME;
-    }
-  };
-
   const [profileImage, setProfileImage] = useState(getStoredProfile);
-  const [resumeFile, setResumeFile] = useState(getStoredResume);
   const [feedback, setFeedback] = useState("");
+  const [resumeFeedback, setResumeFeedback] = useState("");
+  const [resume, setResume] = useState({ url: DEFAULT_RESUME_URL, name: "resume.pdf" });
+  const [selectedResumeFile, setSelectedResumeFile] = useState(null);
+
+  useEffect(() => {
+    return () => {
+      if (resumeViewUrlRef.current) {
+        URL.revokeObjectURL(resumeViewUrlRef.current);
+      }
+    };
+  }, []);
 
   const validateProfileImage = (file) => {
     const allowedTypes = [
@@ -66,13 +53,17 @@ const Hero = () => {
     }
   };
 
-  const validateResume = (file) => {
-    if (file.type !== "application/pdf") {
-      throw new Error("Please upload a PDF resume.");
+  const validateResumePdf = (file) => {
+    if (!file) {
+      throw new Error("No file selected. Please choose a PDF resume.");
     }
 
-    if (file.size > RESUME_MAX_SIZE) {
-      throw new Error("Resume must be smaller than 5MB.");
+    if (file.type !== "application/pdf") {
+      throw new Error("Please upload a valid PDF resume.");
+    }
+
+    if (file.size <= 0) {
+      throw new Error("The selected PDF is empty. Please choose a non-empty PDF.");
     }
   };
 
@@ -105,31 +96,74 @@ const Hero = () => {
   };
 
   const handleResumeUpload = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const file = event.target.files[0];
 
     try {
-      validateResume(file);
-      const reader = new FileReader();
+      validateResumePdf(file);
 
-      reader.onload = () => {
-        const resume = {
-          url: reader.result,
-          name: file.name,
-          type: file.type,
-          size: file.size,
-        };
+      if (resumeViewUrlRef.current) {
+        URL.revokeObjectURL(resumeViewUrlRef.current);
+        resumeViewUrlRef.current = null;
+      }
 
-        localStorage.setItem(RESUME_STORAGE_KEY, JSON.stringify(resume));
-        setResumeFile(resume);
-        setFeedback("Resume uploaded successfully.");
-      };
-
-      reader.readAsDataURL(file);
+      setSelectedResumeFile(file);
+      setResume({ url: DEFAULT_RESUME_URL, name: file.name });
+      setResumeFeedback("Resume uploaded successfully");
     } catch (error) {
-      setFeedback(error.message);
+      setResumeFeedback(error.message);
+      setSelectedResumeFile(null);
+      setResume({ url: DEFAULT_RESUME_URL, name: "resume.pdf" });
+    } finally {
       if (resumeInputRef.current) resumeInputRef.current.value = "";
     }
+  };
+
+  const handleViewResume = (event) => {
+    event.preventDefault();
+
+    if (!selectedResumeFile) {
+      setResumeFeedback("No file selected. Please upload a PDF resume first.");
+      return;
+    }
+
+    try {
+      validateResumePdf(selectedResumeFile);
+    } catch (error) {
+      setResumeFeedback(error.message);
+      return;
+    }
+
+    const url = URL.createObjectURL(selectedResumeFile);
+    resumeViewUrlRef.current = url;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleDownloadResume = (event) => {
+    event.preventDefault();
+
+    if (!selectedResumeFile) {
+      setResumeFeedback("No file selected. Please upload a PDF resume first.");
+      return;
+    }
+
+    try {
+      validateResumePdf(selectedResumeFile);
+    } catch (error) {
+      setResumeFeedback(error.message);
+      return;
+    }
+
+    const downloadUrl = URL.createObjectURL(selectedResumeFile);
+    const anchor = document.createElement("a");
+    anchor.href = downloadUrl;
+    anchor.download = selectedResumeFile.name || "resume.pdf";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(downloadUrl);
+    }, 0);
   };
 
   return (
@@ -191,27 +225,6 @@ const Hero = () => {
         </p>
 
         <div className="flex flex-wrap justify-center gap-4">
-          <a
-            href="#contact"
-            className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-cyan-500/30 transition-all duration-300 hover:-translate-y-0.5"
-          >
-            Hire Me
-          </a>
-          <a
-            href={resumeFile.url}
-            target="_blank"
-            rel="noreferrer"
-            className="px-8 py-3 border border-slate-500 text-slate-300 font-semibold rounded-lg hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300 hover:-translate-y-0.5"
-          >
-            View Resume
-          </a>
-          <a
-            href={resumeFile.url}
-            download={resumeFile.name}
-            className="px-8 py-3 border border-slate-500 text-slate-300 font-semibold rounded-lg hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300 hover:-translate-y-0.5"
-          >
-            Download Resume
-          </a>
           <input
             ref={resumeInputRef}
             id="resumeUpload"
@@ -226,7 +239,28 @@ const Hero = () => {
           >
             Upload Resume
           </label>
+          <a
+            href={resume.url}
+            target="_blank"
+            rel="noreferrer"
+            onClick={handleViewResume}
+            className="px-8 py-3 border border-slate-500 text-slate-300 font-semibold rounded-lg hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300 hover:-translate-y-0.5"
+          >
+            View Resume
+          </a>
+          <a
+            href={resume.url}
+            download={resume.name || "resume.pdf"}
+            onClick={handleDownloadResume}
+            className="px-8 py-3 border border-slate-500 text-slate-300 font-semibold rounded-lg hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300 hover:-translate-y-0.5"
+          >
+            Download Resume
+          </a>
         </div>
+
+        {resumeFeedback && (
+          <p className="mt-4 text-sm text-cyan-300 text-center">{resumeFeedback}</p>
+        )}
 
         {feedback && (
           <p className="mt-4 text-sm text-cyan-300 text-center">{feedback}</p>
