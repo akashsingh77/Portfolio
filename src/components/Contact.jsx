@@ -1,4 +1,5 @@
 import { useState } from "react";
+import emailjs from "@emailjs/browser";
 import {
   FaEnvelope,
   FaMapMarkerAlt,
@@ -15,18 +16,49 @@ const Contact = () => {
     message: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // In a real app, you'd send this to a backend
-    console.log("Form submitted:", formData);
-    setSubmitted(true);
-    setFormData({ name: "", email: "", message: "" });
-    setTimeout(() => setSubmitted(false), 3000);
+    setError("");
+    setSending(true);
+
+    try {
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+      if (!serviceId || !templateId || !publicKey) {
+        setError("Failed to send message");
+        return;
+      }
+
+      await emailjs.send(
+        serviceId,
+        templateId,
+        {
+          name: formData.name,
+          email: formData.email,
+          message: formData.message,
+          reply_to: formData.email,
+        },
+        publicKey
+      );
+
+      setSubmitted(true);
+      setFormData({ name: "", email: "", message: "" });
+      setTimeout(() => setSubmitted(false), 3000);
+    } catch (sendError) {
+      console.error("Unable to send contact form message:", sendError);
+      setError("Failed to send message");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -128,7 +160,7 @@ const Contact = () => {
               <div className="p-6 bg-green-500/10 border border-green-500/30 rounded-lg text-center">
                 <FaPaperPlane className="text-green-400 text-3xl mx-auto mb-3" />
                 <p className="text-green-400 font-semibold">
-                  Message sent successfully!
+                  Message sent successfully
                 </p>
                 <p className="text-green-300 text-sm mt-1">
                   I'll get back to you soon.
@@ -136,6 +168,15 @@ const Contact = () => {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
+                {error && (
+                  <div
+                    role="alert"
+                    className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-300 text-sm"
+                  >
+                    {error}
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-slate-300 text-sm font-medium mb-2">
                     Your Name
@@ -183,6 +224,8 @@ const Contact = () => {
 
                 <button
                   type="submit"
+                  disabled={sending}
+                  aria-busy={sending}
                   className="w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-cyan-500/30 transition-all duration-300 flex items-center justify-center gap-2"
                 >
                   <FaPaperPlane /> Send Message
