@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { FaUserGraduate } from "react-icons/fa";
 
 const About = () => {
+  const [profileImageAvailable, setProfileImageAvailable] = useState(true);
   return (
     <section id="about" className="relative py-24 px-6 bg-slate-800/50">
       <div className="max-w-6xl mx-auto">
@@ -15,11 +17,18 @@ const About = () => {
           {/* Profile Image */}
           <div className="flex-shrink-0">
             <div className="w-64 h-64 md:w-72 md:h-72 rounded-2xl overflow-hidden border-2 border-slate-700 shadow-xl shadow-slate-900/50">
-              <img
-                src="/profile.png"
-                alt="Akash Singh"
-                className="w-full h-full object-cover"
-              />
+              {profileImageAvailable ? (
+                <img
+                  src="/profile.jpeg"
+                  alt="Akash Singh"
+                  className="w-full h-full object-cover"
+                  onError={() => setProfileImageAvailable(false)}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-slate-900 text-cyan-300 text-6xl font-bold" aria-label="Profile photo unavailable">
+                  AS
+                </div>
+              )}
             </div>
           </div>
 

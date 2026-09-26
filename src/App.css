@@ -202,6 +202,12 @@
   margin-top: 1rem;
 }
 
+.certificate-actions {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
 .certificate-view-button {
   display: flex;
   align-items: center;

@@ -1,10 +1,8 @@
-import { useState } from "react";
-import { FaAward, FaBookOpen, FaFilePdf, FaEye, FaTimes } from "react-icons/fa";
+import { FaAward, FaBookOpen, FaDownload, FaEye, FaFilePdf } from "react-icons/fa";
 import { getCertificates } from "../services/certificationService";
 
 function Certifications() {
   const certificates = getCertificates();
-  const [selectedCertificate, setSelectedCertificate] = useState(null);
 
   return (
     <section id="certifications" className="relative py-24 px-6 bg-slate-900">
@@ -24,10 +22,8 @@ function Certifications() {
 
         {certificates.length === 0 ? (
           <div className="no-certificates-empty">
-            <div className="no-certificates-icon">
-              <FaAward size={26} />
-            </div>
-            <h3 className="no-certificates-title">No certificates uploaded</h3>
+            <div className="no-certificates-icon"><FaAward size={26} /></div>
+            <h3 className="no-certificates-title">No certificates available</h3>
           </div>
         ) : (
           <div className="certificate-grid">
@@ -42,7 +38,7 @@ function Certifications() {
 
                 <div className="certificate-image-wrap">
                   {certificate.fileType === "image" ? (
-                    <img src={certificate.fileUrl} alt="Uploaded certificate preview" className="certificate-image" />
+                    <img src={certificate.fileUrl} alt={certificate.fileName} className="certificate-image" />
                   ) : (
                     <div className="certificate-file-preview">
                       <FaFilePdf className="certificate-file-icon" />
@@ -53,61 +49,30 @@ function Certifications() {
 
                 <div className="certificate-card-body">
                   <div className="certificate-icon-wrap">
-                    <span className="certificate-icon">
-                      <FaAward size={20} />
-                    </span>
-                    <span className="certificate-file-type">
-                      {certificate.fileType === "pdf" ? "PDF" : "Image"}
-                    </span>
+                    <span className="certificate-icon"><FaAward size={20} /></span>
+                    <span className="certificate-file-type">{certificate.fileType === "pdf" ? "PDF" : "Image"}</span>
                   </div>
-
-                  <div className="certificate-view-wrap">
-                    <button
+                  <h3 className="certificate-title" title={certificate.fileName}>{certificate.fileName}</h3>
+                  <div className="certificate-actions">
+                    <a
                       className="certificate-view-button"
-                      type="button"
-                      onClick={() => setSelectedCertificate(certificate)}
+                      href={certificate.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      <span className="inline-flex items-center justify-center gap-2">
-                        <FaEye /> View Certificate
-                      </span>
-                    </button>
+                      <span className="inline-flex items-center justify-center gap-2"><FaEye /> View Certificate</span>
+                    </a>
+                    <a
+                      className="certificate-view-button"
+                      href={certificate.fileUrl}
+                      download={certificate.fileName}
+                    >
+                      <span className="inline-flex items-center justify-center gap-2"><FaDownload /> Download Certificate</span>
+                    </a>
                   </div>
                 </div>
               </article>
             ))}
-          </div>
-        )}
-
-        {selectedCertificate && (
-          <div className="certificate-modal-backdrop" onClick={() => setSelectedCertificate(null)}>
-            <div className="certificate-modal-shell" onClick={(event) => event.stopPropagation()}>
-              <div className="certificate-modal-top">
-                <div>
-                  <span className="certificate-modal-title">Certificate Preview</span>
-                  <span className="certificate-modal-name">{selectedCertificate.fileName}</span>
-                </div>
-                <button
-                  type="button"
-                  className="certificate-modal-close"
-                  aria-label="Close preview"
-                  onClick={() => setSelectedCertificate(null)}
-                >
-                  <FaTimes />
-                </button>
-              </div>
-
-              <div className="certificate-modal-content">
-                {selectedCertificate.fileType === "image" ? (
-                  <img src={selectedCertificate.fileUrl} alt={selectedCertificate.fileName} className="certificate-modal-image" />
-                ) : (
-                  <iframe
-                    className="certificate-modal-frame"
-                    src={selectedCertificate.fileUrl}
-                    title={selectedCertificate.fileName}
-                  />
-                )}
-              </div>
-            </div>
           </div>
         )}
 
